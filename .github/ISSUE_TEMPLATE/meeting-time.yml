@@ -1,0 +1,92 @@
+name: "Meeting Time"
+description: "Find a mutual weekly meeting time across a group's timezones."
+title: "[meeting-time] "
+labels: ["meeting-time"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Set up a recurring weekly meeting
+
+        1. Fill in the fields below — especially the **whitelist of respondents**.
+        2. Open the issue. A bot will reply with a link to the availability painter.
+        3. Each whitelisted person paints their week and pastes **one comment**.
+        4. The bot keeps a **Results** comment updated with the best mutual times.
+
+        > The whitelist is the source of truth: only comments from these GitHub
+        > usernames are counted.
+  - type: input
+    id: meeting_id
+    attributes:
+      label: Meeting ID
+      description: A short slug that identifies this meeting (no spaces).
+      placeholder: weekly-standup
+    validations:
+      required: true
+  - type: dropdown
+    id: slot_size
+    attributes:
+      label: Slot size (minutes)
+      description: Granularity of the painting grid.
+      options: ["15", "30", "60"]
+      default: 1
+    validations:
+      required: true
+  - type: input
+    id: duration
+    attributes:
+      label: Meeting duration (minutes)
+      description: How long the meeting needs to be.
+      placeholder: "60"
+    validations:
+      required: true
+  - type: input
+    id: num_meetings
+    attributes:
+      label: Number of meetings
+      description: >-
+        How many complementary meeting times to schedule so everyone can attend
+        at least one. Use 2+ when no single time can span every region (e.g.
+        APAC + EMEA + AMER); the same responses are reused for all of them.
+      placeholder: "1"
+  - type: input
+    id: min_attendees
+    attributes:
+      label: Minimum attendees per meeting
+      description: >-
+        Don't propose a meeting unless at least this many whitelisted people
+        (including any host) can attend it. Default 2.
+      placeholder: "2"
+  - type: input
+    id: start_hour
+    attributes:
+      label: Earliest hour shown (0-24)
+      description: Hide hours before this in the painter (local to each viewer).
+      placeholder: "0"
+  - type: input
+    id: end_hour
+    attributes:
+      label: Latest hour shown (0-24)
+      placeholder: "24"
+  - type: textarea
+    id: hosts
+    attributes:
+      label: Meeting host(s)
+      description: >-
+        Usernames who MUST be able to attend every meeting time — their
+        availability is always respected. Hosts should paint their week too and
+        mark "sometimes available" for any unsociable hours they're willing to
+        take. One per line, @ optional. Leave blank if there's no fixed host.
+      placeholder: |
+        @hostuser
+  - type: textarea
+    id: whitelist
+    attributes:
+      label: Whitelisted respondents
+      description: GitHub usernames whose comments are counted. One per line, @ optional.
+      placeholder: |
+        @alice
+        @bob
+        @carol
+    validations:
+      required: true

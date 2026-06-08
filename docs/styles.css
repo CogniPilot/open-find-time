@@ -1,0 +1,93 @@
+:root {
+  --s0: #f3f4f6; /* completely unavailable / baseline */
+  --s1: #fcd34d; /* sometimes available  */
+  --s2: #34d399; /* preferably available */
+  --line: #d1d5db;
+  --ink: #111827;
+  --muted: #6b7280;
+  --accent: #2563eb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--ink);
+  background: #fff;
+}
+
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+.controls label { display: flex; flex-direction: column; font-size: .8rem; color: var(--muted); gap: 4px; }
+.controls input[type=text] {
+  font-size: .95rem; padding: 6px 8px; border: 1px solid var(--line);
+  border-radius: 6px; min-width: 220px; color: var(--ink);
+}
+
+.brushes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.brush-label { font-size: .8rem; color: var(--muted); }
+.brush {
+  border: 2px solid transparent; border-radius: 6px; padding: 6px 10px;
+  font-size: .85rem; cursor: pointer; color: var(--ink);
+}
+.brush[data-brush="2"] { background: var(--s2); }
+.brush[data-brush="1"] { background: var(--s1); }
+.brush[data-brush="0"] { background: var(--s0); border-color: var(--line); }
+.brush.active { outline: 3px solid var(--accent); outline-offset: 1px; }
+
+.bulk button, .io-head button {
+  border: 1px solid var(--line); background: #fff; border-radius: 6px;
+  padding: 6px 12px; font-size: .85rem; cursor: pointer;
+}
+.bulk button:hover, .io-head button:hover { background: #f9fafb; }
+
+.legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: .8rem; margin: 8px 0 16px; }
+.legend .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -2px; margin-right: 4px; }
+.swatch.s0 { background: var(--s0); }
+.swatch.s1 { background: var(--s1); }
+.swatch.s2 { background: var(--s2); }
+
+#grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+
+table.grid { border-collapse: collapse; width: 100%; user-select: none; touch-action: none; }
+table.grid th { font-size: .72rem; font-weight: 600; color: var(--muted); padding: 6px 4px; position: sticky; top: 0; background: #fff; }
+table.grid th.time { width: 56px; text-align: right; padding-right: 8px; font-variant-numeric: tabular-nums; }
+table.grid td {
+  width: 12%; height: 16px; border: 1px solid var(--line);
+  background: var(--s0); cursor: crosshair;
+}
+table.grid td[data-state="1"] { background: var(--s1); }
+table.grid td[data-state="2"] { background: var(--s2); }
+table.grid tr.hourline td, table.grid tr.hourline th.time { border-top: 2px solid #9ca3af; }
+
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+@media (max-width: 720px) { .io { grid-template-columns: 1fr; } }
+.io-head { display: flex; align-items: center; justify-content: space-between; }
+.io h2 { font-size: 1rem; margin: 0; }
+.hint { color: var(--muted); font-size: .78rem; margin: 4px 0 6px; }
+textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+
+/* timezone confirmation line */
+.tz-note { font-size: .82rem; color: var(--muted); margin: 8px 0 12px; padding: 8px 10px; background: #f9fafb; border: 1px solid var(--line); border-radius: 6px; }
+.tz-note strong { color: var(--ink); }
+.tz-note .tz-warn { color: #b45309; }
+
+/* results page */
+.chip { display: inline-block; background: #f3f4f6; border: 1px solid var(--line); border-radius: 12px; padding: 2px 8px; font-size: .8rem; margin: 2px 2px 2px 0; }
+.chip small { color: var(--muted); }
+table.grid.heat td { font-size: .62rem; text-align: center; color: #065f46; height: 20px; cursor: default; }
+table.grid.heat td.full { outline: 2px solid #059669; outline-offset: -2px; }
+pre.plan { background: #f9fafb; border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: .8rem; white-space: pre-wrap; }
+details summary { cursor: pointer; font-weight: 600; margin: 8px 0; }
+#heatmap-wrap { margin-top: 12px; }

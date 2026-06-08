@@ -1,0 +1,31 @@
+name: Collate meeting availability
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: collate-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  collate:
+    # Only act on issues created from the Meeting Time template.
+    if: contains(github.event.issue.labels.*.name, 'meeting-time')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Collate and post results
+        run: python scripts/collate.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional override if you use a custom domain for Pages.
+          PAGES_URL: ${{ vars.PAGES_URL }}

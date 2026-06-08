@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paint your weekly availability</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <h1>Paint your weekly availability</h1>
+    <p class="sub">
+      You start <strong>fully available</strong>. Click &amp; drag to paint only
+      the times you're <strong>completely unavailable</strong> or
+      <strong>sometimes available</strong>, then hit
+      <strong>Export to comment</strong> and paste the result into the meeting's
+      GitHub issue. Times are shown in <em>your</em> timezone — the workflow
+      converts everyone to a common time automatically.
+    </p>
+    <p class="hint"><a href="results.html">📊 View the live results heatmap →</a> for an existing meeting issue.</p>
+
+    <section class="controls">
+      <label>
+        Meeting ID
+        <input id="meeting" type="text" placeholder="e.g. weekly-standup" />
+      </label>
+      <label>
+        Your timezone
+        <select id="tz"></select>
+      </label>
+      <div class="brushes" role="group" aria-label="Brush">
+        <span class="brush-label">Paint:</span>
+        <button type="button" class="brush" data-brush="0">Completely unavailable</button>
+        <button type="button" class="brush" data-brush="1">Sometimes available</button>
+        <button type="button" class="brush" data-brush="2">Preferably available (reset)</button>
+      </div>
+      <div class="bulk">
+        <button type="button" id="clear">Reset to all available</button>
+      </div>
+    </section>
+
+    <p id="tz-note" class="tz-note"></p>
+
+    <div class="legend">
+      <span><i class="swatch s2"></i> Preferably available (default)</span>
+      <span><i class="swatch s1"></i> Sometimes available</span>
+      <span><i class="swatch s0"></i> Completely unavailable</span>
+    </div>
+
+    <div id="grid-wrap"></div>
+
+    <section class="io">
+      <div class="io-col">
+        <div class="io-head">
+          <h2>Export to comment</h2>
+          <button type="button" id="copy">Copy</button>
+        </div>
+        <p class="hint">Paste this whole block as a comment on the meeting issue.</p>
+        <textarea id="export" readonly rows="10"></textarea>
+      </div>
+      <div class="io-col">
+        <div class="io-head">
+          <h2>Import (edit a past response)</h2>
+          <button type="button" id="import-btn">Load</button>
+        </div>
+        <p class="hint">Paste a previous comment block here to keep editing it.</p>
+        <textarea id="import" rows="10" placeholder="Paste your previous comment here…"></textarea>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
