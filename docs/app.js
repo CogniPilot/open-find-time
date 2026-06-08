@@ -20,6 +20,10 @@ const cfg = {
 };
 if (cfg.endHour <= cfg.startHour) { cfg.startHour = 0; cfg.endHour = 24; }
 
+// A shared link can carry a full painted grid (`g`) + timezone to reopen the exact selection.
+const sharedGrid = params.get("g");
+const sharedTz = params.get("tz");
+
 // ---- DOM refs ----
 const meetingEl = document.getElementById("meeting");
 const tzEl = document.getElementById("tz");
@@ -56,6 +60,7 @@ function populateTimezones() {
   tzEl.value = detectedTz;
 }
 populateTimezones();
+if (sharedTz && isValidTz(sharedTz)) { ensureTzOption(sharedTz); tzEl.value = sharedTz; }
 
 // Confirmation line so people can sanity-check the zone — browser auto-detect
 // can be wrong on a VPN or while travelling.
@@ -90,6 +95,10 @@ let rows = ((cfg.endHour - cfg.startHour) * 60) / cfg.slotMinutes;
 // Default is 2 (preferably available): everyone starts fully available and
 // paints only their genuine unavailability. See README "Why default to available".
 let state = DAYS.map(() => new Array(rows).fill(2)); // 0=unavailable, 1=sometimes, 2=preferably
+// reopen an exact selection carried in a shared link
+if (sharedGrid && /^[0-2]+$/.test(sharedGrid) && sharedGrid.length === DAYS.length * rows) {
+  state = DAYS.map((_, d) => Array.from(sharedGrid.slice(d * rows, (d + 1) * rows), (ch) => +ch));
+}
 let currentBrush = 0;
 let painting = false;
 
@@ -203,11 +212,21 @@ function buildPayload() {
   };
 }
 
+function selfLink(payload) {
+  const grid = DAYS.map((d) => payload.grid[d]).join("");
+  const qs = new URLSearchParams({
+    meeting: payload.meeting, tz: payload.tz, slot: String(payload.slotMinutes),
+    start: String(payload.startHour), end: String(payload.endHour), g: grid,
+  }).toString();
+  return `${location.origin}${location.pathname}?${qs}`;
+}
+
 function updateExport() {
   const payload = buildPayload();
   const json = JSON.stringify(payload, null, 2);
   exportEl.value =
     `**Availability** for \`${payload.meeting || "(set a Meeting ID)"}\` — timezone \`${payload.tz}\`\n` +
+    `[🔗 Reopen this exact selection](${selfLink(payload)})\n` +
     `<!-- ${MARKER} -->\n` +
     "```json\n" + json + "\n```\n";
 }
