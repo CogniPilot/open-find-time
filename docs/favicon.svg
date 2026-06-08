@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- calendar body -->
+  <rect x="3" y="6" width="26" height="23" rx="4" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+  <!-- green header band + divider -->
+  <rect x="4" y="7" width="24" height="6" rx="3" fill="#34d399"/>
+  <path d="M4 13h24" stroke="#111827" stroke-width="2"/>
+  <!-- binder tabs -->
+  <rect x="9" y="3" width="3" height="6" rx="1.5" fill="#111827"/>
+  <rect x="20" y="3" width="3" height="6" rx="1.5" fill="#111827"/>
+  <!-- day cells: green = prefer, amber = sometimes (matches the painter) -->
+  <g>
+    <rect x="6.5" y="16.5" width="4.5" height="4.5" rx="1" fill="#34d399"/>
+    <rect x="13.75" y="16.5" width="4.5" height="4.5" rx="1" fill="#fcd34d"/>
+    <rect x="21" y="16.5" width="4.5" height="4.5" rx="1" fill="#34d399"/>
+    <rect x="6.5" y="23" width="4.5" height="4.5" rx="1" fill="#fcd34d"/>
+    <rect x="13.75" y="23" width="4.5" height="4.5" rx="1" fill="#34d399"/>
+    <rect x="21" y="23" width="4.5" height="4.5" rx="1" fill="#34d399"/>
+  </g>
+</svg>
