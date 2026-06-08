@@ -110,6 +110,10 @@ so the trade-off is visible rather than hidden.
    links point straight at it. For this repo it is `https://findtime.cognipilot.org`.
 5. Actions are enabled by default; the workflow uses the built-in `GITHUB_TOKEN`
    with `issues: write` — no secrets to add.
+6. **Create a `meeting-time` label.** GitHub only auto-applies a template's label
+   if it already exists, so without it issues open *unlabelled* and the workflow
+   skips them. (The workflow also falls back to the `[meeting-time]` title prefix,
+   so it still works if you forget — but the label keeps issues tidy/filterable.)
 
 ## Running a meeting
 
