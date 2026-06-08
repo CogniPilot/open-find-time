@@ -315,10 +315,12 @@ def solve_meetings(responders, host_logins, num_meetings, duration_min, min_atte
 # --------------------------------------------------------------------------- #
 # Rendering
 # --------------------------------------------------------------------------- #
-def render_link(cfg, pages_url):
+def render_link(cfg, pages_url, issue_number):
+    base = pages_url.rstrip("/")
     q = (f"?meeting={cfg['meeting']}&slot={cfg['slot']}"
          f"&start={cfg['start']}&end={cfg['end']}")
-    url = pages_url.rstrip("/") + "/" + q
+    url = base + "/" + q
+    results_url = f"{base}/results.html?repo={REPO}&issue={issue_number}"
     names = " ".join(f"@{u}" for u in cfg["whitelist"])
     extra = ""
     if cfg["hosts"]:
@@ -332,6 +334,8 @@ def render_link(cfg, pages_url):
     return (
         f"### 🎨 Paint your availability\n\n"
         f"**[Open the availability painter →]({url})**\n\n"
+        f"📊 **[Live availability heatmap →]({results_url})** — everyone's overlap "
+        f"in your own timezone, updates as people comment.\n\n"
         f"{extra}"
         f"Whitelisted respondents: {names or '(none listed)'}\n\n"
         f"Paint your week, click **Export to comment**, and paste the block as a "
@@ -442,7 +446,7 @@ def main():
 
     # one bot comment with the prefilled painter link
     upsert_marker_comment(issue_number, comments, LINK_MARKER,
-                          render_link(cfg, pages_url))
+                          render_link(cfg, pages_url, issue_number))
 
     # latest valid payload per whitelisted user (comments are in chronological order)
     wl_lower = {u.lower(): u for u in cfg["whitelist"]}

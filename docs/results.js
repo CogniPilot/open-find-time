@@ -210,26 +210,34 @@ function renderHeatmap(agg, total, viewerTz, startHour, endHour) {
     tr.appendChild(th);
     for (let d = 0; d < 7; d++) {
       const [Y, Mo, D] = utcDateParts(ANCHOR + d * 86400000);
-      let avail = Infinity, pref = Infinity;
+      // use the limiting 15-min sub-bucket (fewest available across the cell)
+      let lim = null;
       for (let sub = 0; sub < subs; sub++) {
         const mins = t + sub * RES_MIN;
         const b = bucketOf(wallToUTC(viewerTz, Y, Mo, D, Math.floor(mins / 60), mins % 60));
-        avail = Math.min(avail, agg[b].pref + agg[b].some);
-        pref = Math.min(pref, agg[b].pref);
+        const a = agg[b].pref + agg[b].some;
+        if (lim === null || a < lim.avail) lim = { avail: a, pref: agg[b].pref, some: agg[b].some };
       }
+      const { avail, pref, some } = lim;
       const td = document.createElement("td");
-      const frac = total ? avail / total : 0;
-      td.style.background = frac > 0 ? `rgba(16,185,129,${(0.15 + 0.85 * frac).toFixed(3)})` : "";
+      if (total && avail > 0) {
+        // stacked fill from the bottom: green = prefer, amber = sometimes, rest empty
+        const pf = (pref / total) * 100, sf = (some / total) * 100;
+        td.style.background =
+          `linear-gradient(to top, var(--s2) 0 ${pf.toFixed(1)}%, ` +
+          `var(--s1) ${pf.toFixed(1)}% ${(pf + sf).toFixed(1)}%, ` +
+          `transparent ${(pf + sf).toFixed(1)}% 100%)`;
+      }
       if (total && avail === total) td.classList.add("full");
       td.textContent = total ? String(avail) : "";
-      td.title = `${DAYS[d]} ${pad(Math.floor(t / 60))}:${pad(t % 60)} — ${avail}/${total} available` +
-        (pref ? ` (${pref} prefer)` : "");
+      td.title = `${DAYS[d]} ${pad(Math.floor(t / 60))}:${pad(t % 60)} — ` +
+        `${avail}/${total} available (${pref} prefer, ${some} sometimes)`;
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  heatWrap.innerHTML = `<p class="hint">Numbers = how many of ${total} can meet (darker = more). 🟩 full = everyone. Times in <strong>${viewerTz}</strong>.</p>`;
+  heatWrap.innerHTML = `<p class="hint">Each cell stacks 🟩 <strong>prefer</strong> over 🟨 <strong>sometimes</strong>-available; the number is how many of ${total} can meet; ▢ outline = everyone. Times in <strong>${esc(viewerTz)}</strong>.</p>`;
   heatWrap.appendChild(table);
 }
 
