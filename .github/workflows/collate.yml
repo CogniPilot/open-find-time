@@ -15,8 +15,9 @@ concurrency:
 
 jobs:
   collate:
-    # Only act on issues created from the Meeting Time template.
-    if: contains(github.event.issue.labels.*.name, 'meeting-time')
+    # Act on Meeting Time issues — by label, or by the template's title prefix as a
+    # fallback (so it works even if the 'meeting-time' label doesn't exist in the repo).
+    if: ${{ contains(github.event.issue.labels.*.name, 'meeting-time') || startsWith(github.event.issue.title, '[meeting-time]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
