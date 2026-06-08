@@ -99,12 +99,15 @@ so the trade-off is visible rather than hidden.
 1. **Create a repo** from these files (named e.g. `open-find-time`) and push.
 2. **Enable GitHub Pages:** Settings → Pages → Source = *Deploy from a branch* →
    branch `main`, folder `/docs`. Your painter is then at
-   `https://<owner>.github.io/<repo>/`.
+   `https://<owner>.github.io/<repo>/` (or a custom domain). **This repo is served
+   at <https://findtime.cognipilot.org/>** via a custom domain, with the hostname
+   committed in `docs/CNAME` so it survives deploys.
 3. The painter link in `.github/ISSUE_TEMPLATE/config.yml` is set to
-   `https://cognipilot.github.io/open-find-time/`. **If you forked this repo,**
-   change it to your own `https://<owner>.github.io/<repo>/`.
-4. *(Optional, custom domain only)* Set a repo **variable** `PAGES_URL` to your
-   Pages base URL (Settings → Secrets and variables → Actions → Variables).
+   `https://findtime.cognipilot.org/`. **If you forked this repo,** change it to
+   your own `https://<owner>.github.io/<repo>/`.
+4. **Custom domain:** set a repo **variable** `PAGES_URL` to your Pages base URL
+   (Settings → Secrets and variables → Actions → Variables) so the bot's painter
+   links point straight at it. For this repo it is `https://findtime.cognipilot.org`.
 5. Actions are enabled by default; the workflow uses the built-in `GITHUB_TOKEN`
    with `issues: write` — no secrets to add.
 
