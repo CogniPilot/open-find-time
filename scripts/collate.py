@@ -39,6 +39,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 RES_MIN = 15                      # collation resolution
 WEEK_BUCKETS = 7 * 24 * 60 // RES_MIN   # 672
+DAY_BUCKETS = 24 * 60 // RES_MIN        # 96 — buckets in a single day
+ALT_TIER_MIN = 4 * 60 // RES_MIN        # 16 — width of a "different time-of-day region" (~4h)
 UTC = timezone.utc
 
 RESULTS_MARKER = "<!-- MEETING-RESULTS -->"
@@ -264,10 +266,26 @@ def attend_sets(responders, length):
     return out
 
 
+def clock_gap(a, b):
+    """Circular distance between two start buckets by *time of day* (weekday ignored),
+    in 15-min buckets (0 .. DAY_BUCKETS//2). Time-of-day is what separates regions:
+    09:00 and 21:00 UTC reach opposite sides of the globe, while 09:00 Mon and 09:00
+    Wed reach the same people — so two meetings a day apart but at the same clock time
+    are *not* complementary."""
+    d = (a - b) % DAY_BUCKETS
+    return min(d, DAY_BUCKETS - d)
+
+
 def solve_meetings(responders, host_logins, num_meetings, duration_min, min_attendees=1):
-    """Greedy, host-gated max-coverage. Every meeting must work for all hosts who
-    have responded, and have at least `min_attendees` people (including hosts);
-    meetings are chosen to cover the most still-uncovered people.
+    """Greedy, host-gated max-coverage with regional spread. Every meeting must work
+    for all hosts who have responded and have at least `min_attendees` people
+    (including hosts). Meetings are chosen to (1) cover the most still-uncovered
+    people, then (2) sit in a different *time of day* from the meetings already
+    chosen, so a request for N meetings yields N complementary regional slots
+    (e.g. APAC / EMEA / AMER) rather than several near-duplicates of one popular
+    window. A meeting that newly covers nobody is only proposed if it lands in a
+    genuinely different time-of-day region (≥ ~4h away), never as a small shift of
+    an existing one.
 
     Returns (meetings, covered) where each meeting is
     (start_bucket, attend_dict, marginal_new_count)."""
@@ -282,24 +300,28 @@ def solve_meetings(responders, host_logins, num_meetings, duration_min, min_atte
         return all(h in att[start] for h in hosts_present)
 
     covered, meetings = set(), []
-    used_starts, used_buckets = set(), set()
+    used_starts, chosen_starts = set(), []
     for _ in range(num_meetings):
-        best = None  # ((marginal, score, -start), start)
+        best = None  # ((marginal, tier, score, -start), start)
         for start in range(WEEK_BUCKETS):
             if start in used_starts:
                 continue
             if len(att[start]) < min_attendees or not host_ok(start):
                 continue
-            window = [(start + k) % WEEK_BUCKETS for k in range(length)]
             marginal = len(set(att[start]) - covered)
-            # Complementary meetings MAY overlap — that's how two cohorts whose
-            # only feasible windows partly overlap each still get covered. Only a
-            # window that adds NO new coverage must be a genuinely distinct time
-            # (no overlap), so a zero-gain "alternative" isn't a 15-min shift.
-            if marginal == 0 and any(b in used_buckets for b in window):
+            # time-of-day distance to the nearest meeting already chosen, binned into
+            # ~4h regional tiers (so 08:00 and 09:00 count as the same region and the
+            # better-attended one wins, but 09:00 and 21:00 do not).
+            spread = min((clock_gap(start, s) for s in chosen_starts), default=DAY_BUCKETS)
+            tier = spread // ALT_TIER_MIN
+            # A window that adds NO new coverage is worth proposing only as a different
+            # region's slot; a same-region duplicate (incl. a 15-min/1-hour shift) is not.
+            if marginal == 0 and tier == 0:
                 continue
             score = sum(att[start].values())
-            key = (marginal, score, -start)
+            # cover the most new people; among ties, spread across regions; then prefer
+            # the best-attended / most-preferred slot within that region.
+            key = (marginal, tier, score, -start)
             if best is None or key > best[0]:
                 best = (key, start)
         if best is None:
@@ -308,7 +330,7 @@ def solve_meetings(responders, host_logins, num_meetings, duration_min, min_atte
         meetings.append((start, att[start], marginal))
         covered |= set(att[start])
         used_starts.add(start)
-        used_buckets |= {(start + k) % WEEK_BUCKETS for k in range(length)}
+        chosen_starts.append(start)
     return meetings, covered
 
 
@@ -375,6 +397,18 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
         return "\n".join(lines)
 
     # assign each person to one meeting (their most-preferred); hosts attend all
+    def local_unsociable(start_bucket, tzname):
+        # how far the meeting's local start is from 13:00 (circular hours); used only
+        # to break ties between equally-preferred meetings, so when two slots are both
+        # "preferred" a person lands on the one at a saner local hour (e.g. APAC's
+        # 09:00 slot, not the same group's Saturday-00:00 one).
+        try:
+            lt = bucket_to_utc(start_bucket).astimezone(ZoneInfo(tzname))
+        except Exception:
+            return 0.0
+        h = lt.hour + lt.minute / 60
+        return min(abs(h - 13), 24 - abs(h - 13))
+
     assigned = {i: [] for i in range(len(meetings))}
     for login, _tz, _amap in responders:
         opts = [(i, m[1][login]) for i, m in enumerate(meetings) if login in m[1]]
@@ -384,7 +418,11 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
             for i, _ in opts:
                 assigned[i].append(login)
         else:
-            assigned[max(opts, key=lambda o: (o[1], -o[0]))[0]].append(login)
+            best_i = max(
+                opts,
+                key=lambda o: (o[1], -local_unsociable(meetings[o[0]][0], _tz), -o[0]),
+            )[0]
+            assigned[best_i].append(login)
 
     n, total = len(meetings), len(responders)
     quorum = cfg.get("min_attendees", 1)
@@ -400,7 +438,7 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
                    else f"{DAYS[end_utc.weekday()]} {end_utc:%H:%M}")  # show end day if it crosses midnight
         note = f"{len(att)} can attend"
         if i > 1:
-            note += f" · +{marginal} new" if marginal else " · alternative time"
+            note += f" · +{marginal} new" if marginal else " · complementary regional time"
         lines.append(f"\n**Meeting {i} — {DAYS[start_utc.weekday()]} "
                      f"{start_utc:%H:%M}–{end_lbl} UTC**  ·  {note}")
         window = [(start + k) % WEEK_BUCKETS for k in range(length)]

@@ -84,15 +84,24 @@ Three issue-form fields shape the result:
   this many whitelisted people (including any host) can attend it. Default 2, so
   the tool never schedules a meeting for a single person.
 
-The solver is a greedy, host-gated max-coverage: meeting 1 covers the most
-people, meeting 2 covers the most of whoever is still uncovered, and so on. Once
-everyone is covered, any further meetings become high-quality alternatives.
+The solver is a greedy, host-gated max-coverage **with regional spread**: meeting 1
+covers the most people; each later meeting first covers the most of whoever is
+still uncovered and, among equally-good options, is placed at a *different time of
+day* from the meetings already chosen — so asking for N meetings yields N
+**complementary regional slots** (APAC / EMEA / AMER) rather than several
+near-duplicates of one popular window. Once everyone is already covered, a further
+meeting is only added if it lands in a genuinely different part of the day
+(≥ ~4 h away in UTC); it will never be a 15-minute or one-hour shift of a time you
+already have. If there aren't that many well-separated host-feasible windows, you
+simply get fewer meetings rather than padded duplicates. When two meetings are
+equally preferred for a given person, they're listed under the one at the saner
+local hour.
 
 This is the APAC/EMEA/AMER case. With a host in AMER and `Number of meetings = 2`,
-you typically get one early-AMER / afternoon-EMEA slot and one late-AMER /
-morning-APAC slot — the host attends both, built from a single set of responses.
-Anyone who can't make *any* host-feasible time is listed explicitly as uncovered,
-so the trade-off is visible rather than hidden.
+you typically get one afternoon-EMEA / late-morning-AMER slot and one
+morning-APAC / evening-AMER slot — the host attends both, built from a single set
+of responses. Anyone who can't make *any* host-feasible time is listed explicitly
+as uncovered, so the trade-off is visible rather than hidden.
 
 ## Setup (once)
 
