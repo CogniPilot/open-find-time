@@ -446,14 +446,19 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
         end_utc = start_utc + timedelta(minutes=duration)
         end_lbl = (f"{end_utc:%H:%M}" if end_utc.weekday() == start_utc.weekday()
                    else f"{DAYS[end_utc.weekday()]} {end_utc:%H:%M}")  # show end day if it crosses midnight
-        note = f"{len(att)} can attend"
+        # count the people actually listed under this meeting (its assigned roster) so
+        # the headline matches the list; some who *can* attend are assigned to a meeting
+        # that suits them better, so note that slack separately rather than inflating.
+        people = sorted(assigned[i - 1],
+                        key=lambda l: (l.lower() not in host_set, l.lower()))
+        note = f"{len(people)} attending"
+        if len(att) > len(people):
+            note += f" ({len(att)} can attend)"
         if i > 1:
             note += f" · +{marginal} new" if marginal else " · complementary regional time"
         lines.append(f"\n**Meeting {i} — {DAYS[start_utc.weekday()]} "
                      f"{start_utc:%H:%M}–{end_lbl} UTC**  ·  {note}")
         window = [(start + k) % WEEK_BUCKETS for k in range(length)]
-        people = sorted(assigned[i - 1],
-                        key=lambda l: (l.lower() not in host_set, l.lower()))
         if not people:
             lines.append("   - _(same people as another meeting — an alternative time)_")
         for login in people:
