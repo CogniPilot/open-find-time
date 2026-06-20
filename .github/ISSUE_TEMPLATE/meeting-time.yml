@@ -90,3 +90,25 @@ body:
         @carol
     validations:
       required: true
+  - type: dropdown
+    id: region_gap
+    attributes:
+      label: Minimum hours between regional meetings (advanced)
+      description: >-
+        ⚠️ Advanced — leave at the default (4 hours) unless you have a specific
+        reason to change it. Only matters when "Number of meetings" is 2+: an
+        extra meeting that adds no new attendees is only scheduled if it sits at
+        least this many hours away (by UTC time of day) from the others, so the
+        extra meetings land in genuinely different regions (e.g. APAC vs AMER)
+        rather than being near-duplicates of one popular time. Lower it only if
+        your group's regions are closer together; raise it to force a wider split.
+      options:
+        - "1 hour"
+        - "2 hours"
+        - "3 hours"
+        - "4 hours (default)"
+        - "6 hours"
+        - "8 hours"
+      default: 3
+    validations:
+      required: false

@@ -40,7 +40,7 @@ DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 RES_MIN = 15                      # collation resolution
 WEEK_BUCKETS = 7 * 24 * 60 // RES_MIN   # 672
 DAY_BUCKETS = 24 * 60 // RES_MIN        # 96 — buckets in a single day
-ALT_TIER_MIN = 4 * 60 // RES_MIN        # 16 — width of a "different time-of-day region" (~4h)
+ALT_TIER_MIN = 4 * 60 // RES_MIN        # 16 — default min separation (~4h) between regional meetings
 UTC = timezone.utc
 
 RESULTS_MARKER = "<!-- MEETING-RESULTS -->"
@@ -160,6 +160,9 @@ def parse_config(issue):
         if h.lower() not in (w.lower() for w in whitelist):
             whitelist.append(h)
 
+    # advanced: minimum separation between regional meetings, in hours -> buckets
+    region_gap_hours = min(12, max(1, as_int("Minimum hours between regional meetings (advanced)", 4)))
+
     return {
         "meeting": _field(f, "Meeting ID", f"issue-{issue['number']}"),
         "slot": as_int("Slot size (minutes)", 30),
@@ -168,6 +171,7 @@ def parse_config(issue):
         "end": min(24, max(1, as_int("Latest hour shown (0-24)", 24))),
         "num_meetings": min(6, max(1, as_int("Number of meetings", 1))),
         "min_attendees": max(1, as_int("Minimum attendees per meeting", 2)),
+        "region_gap": region_gap_hours * 60 // RES_MIN,
         "hosts": hosts,
         "whitelist": whitelist,
     }
@@ -276,7 +280,8 @@ def clock_gap(a, b):
     return min(d, DAY_BUCKETS - d)
 
 
-def solve_meetings(responders, host_logins, num_meetings, duration_min, min_attendees=1):
+def solve_meetings(responders, host_logins, num_meetings, duration_min,
+                   min_attendees=1, region_gap=ALT_TIER_MIN):
     """Greedy, host-gated max-coverage with regional spread. Every meeting must work
     for all hosts who have responded and have at least `min_attendees` people
     (including hosts). Meetings are chosen to (1) cover the most still-uncovered
@@ -284,13 +289,14 @@ def solve_meetings(responders, host_logins, num_meetings, duration_min, min_atte
     chosen, so a request for N meetings yields N complementary regional slots
     (e.g. APAC / EMEA / AMER) rather than several near-duplicates of one popular
     window. A meeting that newly covers nobody is only proposed if it lands in a
-    genuinely different time-of-day region (≥ ~4h away), never as a small shift of
-    an existing one.
+    genuinely different time-of-day region — at least `region_gap` buckets away
+    (default ~4h) — never as a small shift of an existing one.
 
     Returns (meetings, covered) where each meeting is
     (start_bucket, attend_dict, marginal_new_count)."""
     if not responders:
         return [], set()
+    region_gap = max(1, region_gap)
     length = max(1, -(-duration_min // RES_MIN))  # ceil: cover the full booked duration
     att = attend_sets(responders, length)
     present = {r[0] for r in responders}
@@ -309,15 +315,19 @@ def solve_meetings(responders, host_logins, num_meetings, duration_min, min_atte
             if len(att[start]) < min_attendees or not host_ok(start):
                 continue
             marginal = len(set(att[start]) - covered)
-            # time-of-day distance to the nearest meeting already chosen, binned into
-            # ~4h regional tiers (so 08:00 and 09:00 count as the same region and the
-            # better-attended one wins, but 09:00 and 21:00 do not).
+            # time-of-day distance to the nearest meeting already chosen.
             spread = min((clock_gap(start, s) for s in chosen_starts), default=DAY_BUCKETS)
-            tier = spread // ALT_TIER_MIN
             # A window that adds NO new coverage is worth proposing only as a different
-            # region's slot; a same-region duplicate (incl. a 15-min/1-hour shift) is not.
-            if marginal == 0 and tier == 0:
+            # region's slot — at least `region_gap` away (the issue's "minimum hours
+            # between regional meetings"). A closer duplicate (incl. a 15-min/1-hour
+            # shift) is not. (Coverage-adding meetings are never gated: stranding a
+            # reachable person is worse than two meetings being close.)
+            if marginal == 0 and spread < region_gap:
                 continue
+            # Rank by fixed ~4h region tiers — not raw distance — so the better-attended
+            # slot within a region wins rather than the farthest thin edge (e.g. 08:00
+            # with 3 people beats 11:00 with 1, both being "APAC morning").
+            tier = spread // ALT_TIER_MIN
             score = sum(att[start].values())
             # cover the most new people; among ties, spread across regions; then prefer
             # the best-attended / most-preferred slot within that region.
@@ -519,7 +529,7 @@ def main():
 
     meetings, covered = solve_meetings(
         responders, cfg["hosts"], cfg["num_meetings"], cfg["duration"],
-        cfg["min_attendees"])
+        cfg["min_attendees"], cfg["region_gap"])
     body = render_results(cfg, responders, missing, errored, meetings, covered)
     upsert_marker_comment(issue_number, get_comments(issue_number),
                           RESULTS_MARKER, body)

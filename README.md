@@ -91,11 +91,17 @@ day* from the meetings already chosen — so asking for N meetings yields N
 **complementary regional slots** (APAC / EMEA / AMER) rather than several
 near-duplicates of one popular window. Once everyone is already covered, a further
 meeting is only added if it lands in a genuinely different part of the day
-(≥ ~4 h away in UTC); it will never be a 15-minute or one-hour shift of a time you
-already have. If there aren't that many well-separated host-feasible windows, you
-simply get fewer meetings rather than padded duplicates. When two meetings are
-equally preferred for a given person, they're listed under the one at the saner
-local hour.
+(≥ 4 h away in UTC **by default**); it will never be a 15-minute or one-hour shift
+of a time you already have. If there aren't that many well-separated host-feasible
+windows, you simply get fewer meetings rather than padded duplicates. When two
+meetings are equally preferred for a given person, they're listed under the one at
+the saner local hour.
+
+That 4-hour floor is the issue form's **Minimum hours between regional meetings
+(advanced)** field — an optional dropdown that defaults to 4 h and that you should
+leave alone unless your group's regions are unusually close (lower it) or you want
+to force a wider split (raise it). It only affects extra meetings that add no new
+attendees; a meeting needed to cover someone is never blocked by it.
 
 This is the APAC/EMEA/AMER case. With a host in AMER and `Number of meetings = 2`,
 you typically get one afternoon-EMEA / late-morning-AMER slot and one
