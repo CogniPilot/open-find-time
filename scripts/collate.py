@@ -434,6 +434,10 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
             )[0]
             assigned[best_i].append(login)
 
+    # which meeting each non-host person is assigned to, for the "also free" note
+    assigned_to = {lg: mi for mi, logins in assigned.items()
+                   for lg in logins if lg.lower() not in host_set}
+
     n, total = len(meetings), len(responders)
     quorum = cfg.get("min_attendees", 1)
     head = (f"### Plan: {n} meeting{'s' if n > 1 else ''} × {duration} min "
@@ -470,6 +474,20 @@ def render_results(cfg, responders, missing, errored, meetings, covered):
             e_full = fmt_in_tz(end_utc, tzname)
             e = e_full if e_full.split(" ")[0] != s.split(" ")[0] else e_full.split(" ")[-1]
             lines.append(f"   - @{login}{htag} ({tzname}): {s}–{e}{mark}")
+        # people who *can* make this slot but are assigned to a meeting that suits them
+        # better — name them (with their local time + where they're assigned) so the
+        # "(N can attend)" slack is concrete, not just a number.
+        flex = sorted(set(att) - set(people), key=lambda l: l.lower())
+        if flex:
+            parts = []
+            for login in flex:
+                _l, tzname, amap = by_login[login]
+                eff = min((amap.get(b, 0) for b in window), default=0)
+                mk = " ⭐" if eff == 2 else (" ~" if eff == 1 else "")
+                tgt = assigned_to.get(login)
+                on = f", on Meeting {tgt + 1}" if tgt is not None else ""
+                parts.append(f"@{login} ({fmt_in_tz(start_utc, tzname)}{mk}{on})")
+            lines.append("   - _also free: " + ", ".join(parts) + "_")
 
     uncovered = [r for r in responders if r[0] not in covered]
     if uncovered:
